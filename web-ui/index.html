@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>k8s-guardian - Kubernetes运维工具</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <h1>k8s-guardian</h1>
+                <span class="version">v1.1.0</span>
+            </div>
+            <nav class="nav">
+                <a href="#" class="nav-item active" data-section="dashboard">仪表盘</a>
+                <a href="#" class="nav-item" data-section="pods">Pods</a>
+                <a href="#" class="nav-item" data-section="deployments">Deployments</a>
+                <a href="#" class="nav-item" data-section="services">Services</a>
+                <a href="#" class="nav-item" data-section="nodes">节点</a>
+                <a href="#" class="nav-item" data-section="events">事件</a>
+                <a href="#" class="nav-item" data-section="logs">日志</a>
+                <a href="#" class="nav-item" data-section="monitoring">性能监控</a>
+                <a href="#" class="nav-item" data-section="alerts">告警</a>
+                <a href="#" class="nav-item" data-section="automation">自动化</a>
+                <a href="#" class="nav-item" data-section="tenants">多租户</a>
+                <a href="#" class="nav-item" data-section="security">安全审计</a>
+                <a href="#" class="nav-item" data-section="resources">资源</a>
+                <a href="#" class="nav-item" data-section="network">网络</a>
+                <a href="#" class="nav-item" data-section="storage">存储</a>
+                <a href="#" class="nav-item" data-section="rbac">RBAC</a>
+            </nav>
+            <div class="header-actions">
+                <select id="namespace-select" class="namespace-select">
+                    <option value="all">所有命名空间</option>
+                </select>
+                <button id="refresh-btn" class="btn btn-secondary">
+                    <span class="icon">↻</span> 刷新
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section id="dashboard" class="section active">
+                <div class="dashboard-grid">
+                    <div class="card health-card">
+                        <h3>集群健康状态</h3>
+                        <div class="health-status" id="cluster-health">
+                            <span class="status-indicator"></span>
+                            <span class="status-text">加载中...</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>CPU 使用率</h3>
+                        <canvas id="cpu-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>内存使用率</h3>
+                        <canvas id="memory-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>Pod 状态分布</h3>
+                        <canvas id="pod-status-chart"></canvas>
+                    </div>
+                    <div class="card full-width">
+                        <h3>实时资源使用趋势</h3>
+                        <canvas id="resource-trend-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="pods" class="section">
+                <div class="section-header">
+                    <h2>Pod 列表</h2>
+                    <div class="filters">
+                        <input type="text" id="pod-search" placeholder="搜索 Pod..." class="search-input">
+                        <select id="pod-status-filter" class="filter-select">
+                            <option value="">所有状态</option>
+                            <option value="Running">运行中</option>
+                            <option value="Pending">等待中</option>
+                            <option value="Failed">失败</option>
+                            <option value="Succeeded">成功</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>命名空间</th>
+                                <th>状态</th>
+                                <th>节点</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pods-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="deployments" class="section">
+                <div class="section-header">
+                    <h2>Deployment 列表</h2>
+                    <div class="filters">
+                        <input type="text" id="deployment-search" placeholder="搜索 Deployment..." class="search-input">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>命名空间</th>
+                                <th>副本数</th>
+                                <th>就绪副本</th>
+                                <th>镜像</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deployments-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="services" class="section">
+                <div class="section-header">
+                    <h2>Service 列表</h2>
+                    <div class="filters">
+                        <input type="text" id="service-search" placeholder="搜索 Service..." class="search-input">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>命名空间</th>
+                                <th>类型</th>
+                                <th>ClusterIP</th>
+                                <th>端口</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="nodes" class="section">
+                <div class="section-header">
+                    <h2>节点列表</h2>
+                </div>
+                <div class="nodes-grid" id="nodes-grid">
+                </div>
+            </section>
+
+            <section id="events" class="section">
+                <div class="section-header">
+                    <h2>事件列表</h2>
+                    <div class="filters">
+                        <select id="event-type-filter" class="filter-select">
+                            <option value="">所有类型</option>
+                            <option value="Normal">正常</option>
+                            <option value="Warning">警告</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="events-container" id="events-container">
+                </div>
+            </section>
+
+            <section id="logs" class="section">
+                <div class="section-header">
+                    <h2>日志查看器</h2>
+                </div>
+                <div class="logs-viewer">
+                    <div class="logs-controls">
+                        <select id="log-pod-select" class="log-select">
+                            <option value="">选择 Pod</option>
+                        </select>
+                        <select id="log-container-select" class="log-select">
+                            <option value="">选择容器</option>
+                        </select>
+                        <input type="number" id="log-tail-lines" placeholder="行数" class="log-input" value="100" min="1" max="10000">
+                        <button id="log-analyze-btn" class="btn btn-primary">分析日志</button>
+                    </div>
+                    <div class="logs-content" id="logs-content">
+                        <pre class="logs-text">选择一个 Pod 查看日志</pre>
+                    </div>
+                    <div class="logs-analysis" id="logs-analysis" style="display: none;">
+                        <h3>日志分析结果</h3>
+                        <div id="logs-analysis-content"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="monitoring" class="section">
+                <div class="section-header">
+                    <h2>性能监控</h2>
+                    <div class="monitoring-controls">
+                        <select id="monitoring-time-range" class="filter-select">
+                            <option value="5m">最近 5 分钟</option>
+                            <option value="15m">最近 15 分钟</option>
+                            <option value="1h">最近 1 小时</option>
+                            <option value="6h">最近 6 小时</option>
+                            <option value="24h">最近 24 小时</option>
+                        </select>
+                        <button id="monitoring-refresh-btn" class="btn btn-secondary">刷新</button>
+                    </div>
+                </div>
+                <div class="monitoring-grid">
+                    <div class="card full-width">
+                        <h3>CPU 使用趋势</h3>
+                        <canvas id="monitoring-cpu-chart"></canvas>
+                    </div>
+                    <div class="card full-width">
+                        <h3>内存使用趋势</h3>
+                        <canvas id="monitoring-memory-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>节点 CPU 使用率</h3>
+                        <canvas id="monitoring-node-cpu-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>节点内存使用率</h3>
+                        <canvas id="monitoring-node-memory-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>网络流量</h3>
+                        <canvas id="monitoring-network-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>磁盘 I/O</h3>
+                        <canvas id="monitoring-disk-chart"></canvas>
+                    </div>
+                    <div class="card full-width">
+                        <h3>Pod 资源使用 Top 10</h3>
+                        <canvas id="monitoring-top-pods-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>Pod 状态分布</h3>
+                        <canvas id="monitoring-pod-status-chart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>容器重启次数</h3>
+                        <canvas id="monitoring-restart-chart"></canvas>
+                    </div>
+                    <div class="card full-width">
+                        <h3>集群资源概览</h3>
+                        <div class="cluster-overview" id="cluster-overview">
+                            <div class="overview-item">
+                                <span class="overview-label">总节点数</span>
+                                <span class="overview-value" id="overview-nodes">-</span>
+                            </div>
+                            <div class="overview-item">
+                                <span class="overview-label">总 Pod 数</span>
+                                <span class="overview-value" id="overview-pods">-</span>
+                            </div>
+                            <div class="overview-item">
+                                <span class="overview-label">运行中 Pod</span>
+                                <span class="overview-value" id="overview-running-pods">-</span>
+                            </div>
+                            <div class="overview-item">
+                                <span class="overview-label">失败 Pod</span>
+                                <span class="overview-value" id="overview-failed-pods">-</span>
+                            </div>
+                            <div class="overview-item">
+                                <span class="overview-label">总 CPU 容量</span>
+                                <span class="overview-value" id="overview-cpu-capacity">-</span>
+                            </div>
+                            <div class="overview-item">
+                                <span class="overview-label">CPU 使用率</span>
+                                <span class="overview-value" id="overview-cpu-usage">-</span>
+                            </div>
+                            <div class="overview-item">
+                                <span class="overview-label">总内存容量</span>
+                                <span class="overview-value" id="overview-memory-capacity">-</span>
+                            </div>
+                            <div class="overview-item">
+                                <span class="overview-label">内存使用率</span>
+                                <span class="overview-value" id="overview-memory-usage">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="alerts" class="section">
+                <div class="section-header">
+                    <h2>告警管理</h2>
+                    <div class="alerts-controls">
+                        <button id="create-alert-rule-btn" class="btn btn-primary">创建告警规则</button>
+                        <button id="export-alerts-btn" class="btn btn-secondary">导出规则</button>
+                        <button id="import-alerts-btn" class="btn btn-secondary">导入规则</button>
+                    </div>
+                </div>
+                <div class="alerts-grid">
+                    <div class="card">
+                        <h3>告警统计</h3>
+                        <div class="alert-stats" id="alert-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">总告警数</span>
+                                <span class="stat-value" id="stat-total">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">活跃告警</span>
+                                <span class="stat-value critical" id="stat-active">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">严重告警</span>
+                                <span class="stat-value critical" id="stat-critical">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">错误告警</span>
+                                <span class="stat-value error" id="stat-error">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">警告告警</span>
+                                <span class="stat-value warning" id="stat-warning">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">24小时告警</span>
+                                <span class="stat-value" id="stat-recent">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card full-width">
+                        <h3>活跃告警</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>告警名称</th>
+                                        <th>严重程度</th>
+                                        <th>当前值</th>
+                                        <th>阈值</th>
+                                        <th>触发时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="active-alerts-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card full-width">
+                        <h3>告警规则</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>规则名称</th>
+                                        <th>描述</th>
+                                        <th>严重程度</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="alert-rules-table">
+                                    <tr>
+                                        <td colspan="5" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card full-width">
+                        <h3>告警历史</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>告警名称</th>
+                                        <th>严重程度</th>
+                                        <th>触发时间</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="alert-history-table">
+                                    <tr>
+                                        <td colspan="5" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="automation" class="section">
+                <div class="section-header">
+                    <h2>自动化运维</h2>
+                    <div class="automation-controls">
+                        <button id="create-script-btn" class="btn btn-primary">创建脚本</button>
+                        <button id="refresh-scripts-btn" class="btn btn-secondary">刷新</button>
+                    </div>
+                </div>
+                <div class="automation-grid">
+                    <div class="card">
+                        <h3>脚本统计</h3>
+                        <div class="script-stats" id="script-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">总脚本数</span>
+                                <span class="stat-value" id="script-total">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">启用脚本</span>
+                                <span class="stat-value" id="script-enabled">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">定时任务</span>
+                                <span class="stat-value" id="script-scheduled">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">总执行次数</span>
+                                <span class="stat-value" id="script-executions">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">成功次数</span>
+                                <span class="stat-value success" id="script-success">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">失败次数</span>
+                                <span class="stat-value error" id="script-failed">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card full-width">
+                        <h3>自动化脚本</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>脚本名称</th>
+                                        <th>描述</th>
+                                        <th>类型</th>
+                                        <th>定时</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="automation-scripts-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card full-width">
+                        <h3>执行历史</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>脚本名称</th>
+                                        <th>触发方式</th>
+                                        <th>状态</th>
+                                        <th>开始时间</th>
+                                        <th>持续时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="script-history-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tenants" class="section">
+                <div class="section-header">
+                    <h2>多租户管理</h2>
+                    <div class="tenants-controls">
+                        <button id="create-tenant-btn" class="btn btn-primary">创建租户</button>
+                        <button id="refresh-tenants-btn" class="btn btn-secondary">刷新</button>
+                    </div>
+                </div>
+                <div class="tenants-grid">
+                    <div class="card">
+                        <h3>租户统计</h3>
+                        <div class="tenant-stats" id="tenant-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">总租户数</span>
+                                <span class="stat-value" id="tenant-total">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">总用户数</span>
+                                <span class="stat-value" id="tenant-users">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">总命名空间</span>
+                                <span class="stat-value" id="tenant-namespaces">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card full-width">
+                        <h3>租户列表</h3>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>租户名称</th>
+                                        <th>描述</th>
+                                        <th>命名空间</th>
+                                        <th>资源配额</th>
+                                        <th>用户数</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tenants-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="security" class="section">
+                <div class="section-header">
+                    <h2>安全审计</h2>
+                    <div class="security-controls">
+                        <button id="generate-report-btn" class="btn btn-primary">生成合规报告</button>
+                        <button id="refresh-security-btn" class="btn btn-secondary">刷新</button>
+                    </div>
+                </div>
+                <div class="security-grid">
+                    <div class="card">
+                        <h3>审计日志统计</h3>
+                        <div class="audit-stats" id="audit-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">总日志数</span>
+                                <span class="stat-value" id="audit-total">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">24小时内</span>
+                                <span class="stat-value" id="audit-24h">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">7天内</span>
+                                <span class="stat-value" id="audit-7d">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>安全事件统计</h3>
+                        <div class="security-event-stats" id="security-event-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">总事件数</span>
+                                <span class="stat-value" id="security-total">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">开放事件</span>
+                                <span class="stat-value" id="security-open">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">已解决</span>
+                                <span class="stat-value" id="security-resolved">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="security-tabs">
+                    <button class="tab-btn active" data-tab="audit-logs">审计日志</button>
+                    <button class="tab-btn" data-tab="security-events">安全事件</button>
+                    <button class="tab-btn" data-tab="compliance-reports">合规报告</button>
+                </div>
+                <div class="security-content" id="security-content">
+                    <div id="audit-logs" class="tab-content active">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>事件类型</th>
+                                        <th>类别</th>
+                                        <th>严重性</th>
+                                        <th>用户</th>
+                                        <th>操作</th>
+                                        <th>结果</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-logs-table">
+                                    <tr>
+                                        <td colspan="7" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="security-events" class="tab-content">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>类型</th>
+                                        <th>严重性</th>
+                                        <th>标题</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="security-events-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="compliance-reports" class="tab-content">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>报告类型</th>
+                                        <th>状态</th>
+                                        <th>合规分数</th>
+                                        <th>发现问题</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="compliance-reports-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="resources" class="section">
+                <div class="section-header">
+                    <h2>资源管理</h2>
+                </div>
+                <div class="resource-tabs">
+                    <button class="tab-btn active" data-tab="resource-quotas">资源配额</button>
+                    <button class="tab-btn" data-tab="limit-ranges">限制范围</button>
+                    <button class="tab-btn" data-tab="daemonsets">DaemonSets</button>
+                    <button class="tab-btn" data-tab="statefulsets">StatefulSets</button>
+                    <button class="tab-btn" data-tab="jobs">Jobs</button>
+                    <button class="tab-btn" data-tab="cronjobs">CronJobs</button>
+                    <button class="tab-btn" data-tab="configmaps">ConfigMaps</button>
+                    <button class="tab-btn" data-tab="secrets">Secrets</button>
+                    <button class="tab-btn" data-tab="serviceaccounts">ServiceAccounts</button>
+                    <button class="tab-btn" data-tab="ingresses">Ingresses</button>
+                    <button class="tab-btn" data-tab="replicasets">ReplicaSets</button>
+                    <button class="tab-btn" data-tab="endpoints">Endpoints</button>
+                    <button class="tab-btn" data-tab="hpas">HPAs</button>
+                    <button class="tab-btn" data-tab="pdbs">PDBs</button>
+                    <button class="tab-btn" data-tab="priority-classes">PriorityClasses</button>
+                    <button class="tab-btn" data-tab="leases">Leases</button>
+                    <button class="tab-btn" data-tab="runtime-classes">RuntimeClasses</button>
+                </div>
+                <div class="resource-content" id="resource-content">
+                </div>
+            </section>
+
+            <section id="network" class="section">
+                <div class="section-header">
+                    <h2>网络管理</h2>
+                </div>
+                <div class="network-tabs">
+                    <button class="tab-btn active" data-tab="network-policies">网络策略</button>
+                    <button class="tab-btn" data-tab="ingress-classes">IngressClasses</button>
+                </div>
+                <div class="network-content" id="network-content">
+                </div>
+            </section>
+
+            <section id="storage" class="section">
+                <div class="section-header">
+                    <h2>存储管理</h2>
+                </div>
+                <div class="storage-tabs">
+                    <button class="tab-btn active" data-tab="persistent-volumes">持久卷</button>
+                    <button class="tab-btn" data-tab="persistent-volume-claims">持久卷声明</button>
+                    <button class="tab-btn" data-tab="storage-classes">存储类</button>
+                    <button class="tab-btn" data-tab="volume-attachments">卷附件</button>
+                    <button class="tab-btn" data-tab="csi-drivers">CSI 驱动</button>
+                    <button class="tab-btn" data-tab="csi-nodes">CSI 节点</button>
+                    <button class="tab-btn" data-tab="csi-capacities">CSI 容量</button>
+                </div>
+                <div class="storage-content" id="storage-content">
+                </div>
+            </section>
+
+            <section id="rbac" class="section">
+                <div class="section-header">
+                    <h2>RBAC 管理</h2>
+                </div>
+                <div class="rbac-tabs">
+                    <button class="tab-btn active" data-tab="roles">Roles</button>
+                    <button class="tab-btn" data-tab="cluster-roles">ClusterRoles</button>
+                    <button class="tab-btn" data-tab="role-bindings">RoleBindings</button>
+                    <button class="tab-btn" data-tab="cluster-role-bindings">ClusterRoleBindings</button>
+                </div>
+                <div class="rbac-content" id="rbac-content">
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">详情</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+# Development dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+yarn.lock
+yarn-debug.log*
+
+# Build artifacts
+dist
+build
+*.tsbuildinfo
+
+# Test artifacts
+coverage
+.nyc_output
+test-results
+junit.xml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.husky
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+docs/
+
+# Tests
+src/__tests__
+*.test.js
+*.spec.js
+__mocks__
+
+# Config files
+.eslintrc.js
+.prettierrc
+.prettierignore
+.editorconfig
+commitlint.config.js
+jest.config.js
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Kubernetes
+helm/
+k8s/
+*.yaml
+*.yml
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+.tmp
+.temp

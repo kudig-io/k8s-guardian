@@ -1,4 +1,26 @@
-# k8s-guardian
+# k8s-guardian (已归并至 klaw)
+
+> ⚠️ **本仓库为遗留代码 (Legacy)，所有功能已迁移至 [klaw](../klaw)。**
+>
+> 以下 13 个模块已用 Go 重写，JavaScript 实现已替换为弃用桩：
+>
+> | JS 模块 | klaw 目标 |
+> |---------|-----------|
+> | `logs.js` | `internal/loganalysis` |
+> | `rbac.js` | `internal/rbacanalysis` |
+> | `alerts.js` | `internal/alerting` |
+> | `backup.js` | `internal/backup` |
+> | `multitenancy.js` | `internal/tenancy` |
+> | `audit.js` | `internal/audit` |
+> | `network.js` | `internal/networkanalysis` |
+> | `storage.js` | `internal/storageanalysis` |
+> | `events.js` | `internal/events` |
+> | `health.js` | `internal/monitoring` |
+> | `resource.js` | `internal/kubernetes` |
+> | `ai.js` | `internal/diag/ai` |
+> | `automation.js` | `internal/automation` |
+>
+> 新功能开发与问题修复请前往 klaw 仓库。
 
 一个高质量的开源 Kubernetes 运维工具，提供命令行可视化界面和 AI 智能辅助功能。
 
